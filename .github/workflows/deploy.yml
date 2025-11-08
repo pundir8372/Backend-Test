@@ -50,23 +50,26 @@ jobs:
       # 7 SSH and deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
+        env:
+            DOCKER_HUB_USERNAME: ${{secrets.DOCKER_HUB_USERNAME}}
+            TAG: ${{ github.sha }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            IMAGE_NAME=pundirsahil/simple-backend
-            TAG=$(echo $GITHUB_SHA | head -c7)
+            IMAGE_NAME=$DOCKER_HUB_USERNAME/simple-backend
+            SHORT_TAG=${TAG::7}
 
             echo "Pulling new Docker image..."
-            docker pull $IMAGE_NAME:$TAG
+            docker pull $IMAGE_NAME:$SHORT_TAG
 
             echo "Stopping old container..."
             docker stop simple-backend || true
             docker rm simple-backend || true
 
             echo "Running new container..."
-            docker run -d --name simple-backend -p 3000:3000 $IMAGE_NAME:$TAG
+            docker run -d --name simple-backend -p 3000:3000 $IMAGE_NAME:$SHORT_TAG
 
             # Health check
             sleep 10
