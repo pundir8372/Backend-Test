@@ -54,8 +54,14 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-});
+//  Start the server only when NOT in test mode
+let server;
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, () => {
+    console.log(
+      `Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`
+    );
+  });
+}
 
 module.exports = { app, server };
