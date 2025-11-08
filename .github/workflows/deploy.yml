@@ -2,7 +2,7 @@ name: Production CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]   
 
 env:
   DOCKER_IMAGE: simple-backend
@@ -30,23 +30,48 @@ jobs:
       - name: Run tests
         run: npm test
 
-    #   # 5 Run linting
-    #   - name: Run linting
-    #     run: npm run lint
-
-      # 6 Login to Docker Hub
+      # 5 Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      # 7 Build and push Docker image
+      # 6 Build and push Docker image
       - name: Build and Push Docker Image
         run: |
-          TAG=$(echo $GITHUB_SHA | head -c7)  
-          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE }}:$TAG .
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE }}:$TAG
-       
-      
+          TAG=$(echo $GITHUB_SHA | head -c7)
+          IMAGE=${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE }}
           
+          # Build Docker image with SHA tag
+          docker build -t $IMAGE:$TAG .
+          docker push $IMAGE:$TAG
+
+      # 7 SSH and deploy to EC2
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            IMAGE_NAME=${{ secrets.DOCKER_HUB_USERNAME }}/simple-backend
+            TAG=$(echo $GITHUB_SHA | head -c7)
+
+            echo "Pulling new Docker image..."
+            docker pull $IMAGE_NAME:$TAG
+
+            echo "Stopping old container..."
+            docker stop simple-backend || true
+            docker rm simple-backend || true
+
+            echo "Running new container..."
+            docker run -d --name simple-backend -p 3000:3000 $IMAGE_NAME:$TAG
+
+            # Health check
+            sleep 10
+            if curl -f http://localhost:3000/health; then
+              echo "Deployment successful"
+            else
+              echo "Deployment failed!"
+            fi
