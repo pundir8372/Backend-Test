@@ -2,23 +2,23 @@ name: Production CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]   
+    branches: [ main ]
 
 env:
   DOCKER_IMAGE: simple-backend
 
-jobs: 
+jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest   
+    runs-on: ubuntu-latest
 
     steps:
       # 1 Checkout repository
       - name: Checkout code
-        uses: actions/checkout@v4   
+        uses: actions/checkout@v4
 
       # 2 Setup Node.js for tests/lint
       - name: Setup Node.js
-        uses: actions/setup-node@v4   
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
@@ -42,7 +42,7 @@ jobs:
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
           IMAGE=${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE }}
-          
+
           # Build Docker image with SHA tag
           docker build -t $IMAGE:$TAG .
           docker push $IMAGE:$TAG
@@ -50,20 +50,18 @@ jobs:
       # 7 SSH and deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
-        env:
-            DOCKER_HUB_USERNAME: ${{secrets.DOCKER_HUB_USERNAME}}
-            TAG: ${{ github.sha }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKER_HUB_USERNAME,TAG
           script: |
             echo "=== Debug Info ==="
             echo "DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME"
             echo "TAG=$TAG"
 
             IMAGE_NAME="${DOCKER_HUB_USERNAME}/simple-backend"
-            SHORT_TAG=$(echo $TAG | cut -c1-7)   
+            SHORT_TAG=$(echo $TAG | cut -c1-7)
 
             echo "Pulling new Docker image..."
             docker pull ${IMAGE_NAME}:${SHORT_TAG}
@@ -82,3 +80,7 @@ jobs:
             else
               echo "Deployment failed!"
             fi
+
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      TAG: ${{ github.sha }}
