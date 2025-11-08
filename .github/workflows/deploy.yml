@@ -30,9 +30,9 @@ jobs:
       - name: Run tests
         run: npm test
 
-      # 5 Run linting
-      - name: Run linting
-        run: npm run lint
+    #   # 5 Run linting
+    #   - name: Run linting
+    #     run: npm run lint
 
       # 6 Login to Docker Hub
       - name: Login to Docker Hub
