@@ -36,6 +36,14 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Test deployment endpoint
+app.get('/version', (req, res) => {
+  res.status(200).json({
+    message: 'New deployment successful!',
+    deployedAt: new Date().toISOString()
+  });
+});
+
 // API routes
 app.use('/api/users', userRoutes);
 
