@@ -71,7 +71,7 @@ jobs:
             docker rm simple-backend || true
 
             echo "Running container with CloudWatch Logging"
-            docker run -d --name simple-backend -p 3000:3000 --log-driver=awslogs --log-opt awslogs-region=eu-west-1 --log-opt awslogs-group=simple-backend-logs --log-opt awslogs-stream=$(hostname) ${IMAGE_NAME}:${SHORT_TAG}
+            docker run -d --name simple-backend -p 3000:3000 --restart unless-stopped --log-driver=awslogs --log-opt awslogs-region=eu-west-1 --log-opt awslogs-group=simple-backend-logs --log-opt awslogs-stream=$(hostname) ${IMAGE_NAME}:${SHORT_TAG}
 
 
             # Health check
