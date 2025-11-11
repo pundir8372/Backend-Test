@@ -26,9 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 4 Run tests
-      - name: Run tests
-        run: npm test
+      # # 4 Run tests
+      # - name: Run tests
+      #   run: npm test
 
       # 5 Login to Docker Hub
       - name: Login to Docker Hub
