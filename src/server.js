@@ -1,4 +1,5 @@
 const express = require('express');
+throw new Error("Simulated startup failure!");
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -28,7 +29,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.send('This is a NEW feature deployed!');
-  nonExistingFunction();
 });
 
 
