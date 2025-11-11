@@ -86,6 +86,10 @@ jobs:
             echo "Performing health check..."
             if curl -fs http://localhost:3000/health; then
               echo "Deployment successful"
+
+              # Login to Docker Hub on EC2
+              echo "${DOCKER_HUB_TOKEN}" | docker login -u "${DOCKER_HUB_USERNAME}" --password-stdin
+              
               docker tag ${IMAGE_NAME}:${SHORT_TAG} ${IMAGE_NAME}:stable
               docker push ${IMAGE_NAME}:stable
             else
