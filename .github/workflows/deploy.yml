@@ -2,7 +2,7 @@ name: Production CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ devops ]
 
 env:
   DOCKER_IMAGE: simple-backend
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2 Setup Node.js for tests/lint
+      # 2 Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,12 +42,13 @@ jobs:
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
           IMAGE=${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE }}
-
-          # Build Docker image with SHA tag
+          echo "Building image: $IMAGE:$TAG"
           docker build -t $IMAGE:$TAG .
           docker push $IMAGE:$TAG
+        # env:
+        #   DOCKER_CLI_EXPERIMENTAL: enabled
 
-      # 7 SSH and deploy to EC2
+      # 7 SSH into EC2 and deploy
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -56,9 +57,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: DOCKER_HUB_USERNAME,TAG
           script: |
-            echo "=== Debug Info ==="
-            echo "DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME"
-            echo "TAG=$TAG"
+            set -e
 
             IMAGE_NAME="${DOCKER_HUB_USERNAME}/simple-backend"
             SHORT_TAG=$(echo $TAG | cut -c1-7)
@@ -70,16 +69,28 @@ jobs:
             docker stop simple-backend || true
             docker rm simple-backend || true
 
-            echo "Running container with CloudWatch Logging"
-            docker run -d --name simple-backend -p 3000:3000 --restart unless-stopped --log-driver=awslogs --log-opt awslogs-region=eu-west-1 --log-opt awslogs-group=simple-backend-logs --log-opt awslogs-stream=$(hostname) ${IMAGE_NAME}:${SHORT_TAG}
+            echo "Running new container..."
+            docker run -d \
+              --name simple-backend \
+              -p 3000:3000 \
+              --restart unless-stopped \
+              --log-driver=awslogs \
+              --log-opt awslogs-region=eu-west-1 \
+              --log-opt awslogs-group=simple-backend-logs \
+              --log-opt awslogs-stream=$(hostname)-${SHORT_TAG} \
+              ${IMAGE_NAME}:${SHORT_TAG}
 
-
-            # Health check
+            echo "Waiting for app to start..."
             sleep 10
-            if curl -f http://localhost:3000/health; then
+
+            echo "Performing health check..."
+            if curl -fs http://localhost:3000/health; then
               echo "Deployment successful"
+              docker tag ${IMAGE_NAME}:${SHORT_TAG} ${IMAGE_NAME}:stable
+              docker push ${IMAGE_NAME}:stable
             else
-              echo "Deployment failed!"
+              echo "Deployment failed! Running rollback..."
+              bash /home/ubuntu/rollback.sh
             fi
 
     env:
