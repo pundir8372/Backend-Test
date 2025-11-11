@@ -55,7 +55,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DOCKER_HUB_USERNAME,TAG
+          envs: DOCKER_HUB_USERNAME,DOCKER_HUB_TOKEN,TAG
           script: |
             set -e
 
@@ -89,7 +89,7 @@ jobs:
 
               # Login to Docker Hub on EC2
               echo "${DOCKER_HUB_TOKEN}" | docker login -u "${DOCKER_HUB_USERNAME}" --password-stdin
-              
+
               docker tag ${IMAGE_NAME}:${SHORT_TAG} ${IMAGE_NAME}:stable
               docker push ${IMAGE_NAME}:stable
             else
