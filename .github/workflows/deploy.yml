@@ -91,7 +91,7 @@ jobs:
               docker push ${IMAGE_NAME}:stable
             else
               echo "Deployment failed! Running rollback..."
-              # bash /home/ubuntu/rollback.sh
+              bash /home/ubuntu/rollback.sh
             fi
 
     env:
